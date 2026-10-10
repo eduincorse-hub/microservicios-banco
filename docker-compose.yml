@@ -1,0 +1,49 @@
+services:
+
+  # ---------------------------------------------------------------
+  # Base de datos: carga BaseDatos.sql automáticamente al iniciar
+  # ---------------------------------------------------------------
+  mysql:           #NOMBRE DEL SERVICIO
+    image: mysql:8.0
+    container_name: banco-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./BaseDatos.sql:/docker-entrypoint-initdb.d/BaseDatos.sql
+      - mysql_data:/var/lib/mysql
+    healthcheck: #Prueba de Salud
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banco-net
+
+  # ---------------------------------------------------------------
+  # Broker de mensajes: comunicación asíncrona entre microservicios
+  # ---------------------------------------------------------------
+  rabbitmq:           #NOMBRE DEL SERVICIO
+    image: rabbitmq:4-management
+    container_name: banco-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"     # Puerto AMQP (lo usan los microservicios)
+      - "15672:15672"   # Consola web de administración
+    healthcheck:  #Prueba de Salud
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"] #ejecute este comando interno
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banco-net
+
+networks:
+  banco-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
