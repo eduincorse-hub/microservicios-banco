@@ -1,0 +1,39 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api          # URLs quedan como http://localhost:8080/api/clientes
+
+spring:
+  application:
+    name: ms-clientes
+
+  # ---------- Base de datos ----------
+  # Valores por defecto, correr desde VS Code (localhost:3307).
+  # En Docker se sobrescriben con variables de entorno (mysql:3306).
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/db_banco_clientes?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Guayaquil
+    username: ${DB_USER:root}  #Credenciales de la Base de Datos
+    password: ${DB_PASSWORD:root}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate        # El esquema lo controla BaseDatos.sql, Hibernate solo lo verifica
+    open-in-view: false         # La sesión de BD no queda abierta hasta la vista
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ---------- RabbitMQ ----------
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:admin}        #Credenciales de la Base de DatosRabbitMQ
+    password: ${RABBITMQ_PASSWORD:admin}
+
+# ---------- Actuator ----------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health         # Solo exponemos /actuator/health (lo usará Docker)
