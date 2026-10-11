@@ -3,7 +3,7 @@ services:
   # ---------------------------------------------------------------
   # Base de datos: carga BaseDatos.sql automáticamente al iniciar
   # ---------------------------------------------------------------
-  mysql:           #NOMBRE DEL SERVICIO
+  mysql:
     image: mysql:8.0
     container_name: banco-mysql
     environment:
@@ -13,7 +13,7 @@ services:
     volumes:
       - ./BaseDatos.sql:/docker-entrypoint-initdb.d/BaseDatos.sql
       - mysql_data:/var/lib/mysql
-    healthcheck: #Prueba de Salud
+    healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
@@ -24,7 +24,7 @@ services:
   # ---------------------------------------------------------------
   # Broker de mensajes: comunicación asíncrona entre microservicios
   # ---------------------------------------------------------------
-  rabbitmq:           #NOMBRE DEL SERVICIO
+  rabbitmq:
     image: rabbitmq:4-management
     container_name: banco-rabbitmq
     environment:
@@ -33,11 +33,77 @@ services:
     ports:
       - "5672:5672"     # Puerto AMQP (lo usan los microservicios)
       - "15672:15672"   # Consola web de administración
-    healthcheck:  #Prueba de Salud
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"] #ejecute este comando interno
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - banco-net
+
+  # ---------------------------------------------------------------
+  # Microservicio de Personas / Clientes
+  # ---------------------------------------------------------------
+  ms-clientes:
+    build: ./ms-clientes
+    container_name: ms-clientes
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: mysql          # nombre del servicio en la red interna
+      DB_PORT: 3306           # puerto INTERNO del contenedor de MySQL
+      DB_USER: root
+      DB_PASSWORD: root
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: admin
+      RABBITMQ_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: on-failure
+    networks:
+      - banco-net
+
+  # ---------------------------------------------------------------
+  # Microservicio de Cuentas / Movimientos / Reportes
+  # ---------------------------------------------------------------
+  ms-cuentas:
+    build: ./ms-cuentas
+    container_name: ms-cuentas
+    environment:
+      SERVER_PORT: 8081
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: admin
+      RABBITMQ_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: on-failure
     networks:
       - banco-net
 
