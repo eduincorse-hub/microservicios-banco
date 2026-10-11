@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /api          # URLs: http://localhost:8081/api/cuentas
+
+spring:
+  application:
+    name: ms-cuentas
+
+  # ---------- Base de datos ----------
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/db_banco_cuentas?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Guayaquil
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ---------- RabbitMQ ----------
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:admin}
+    password: ${RABBITMQ_PASSWORD:admin}
+    listener:
+      simple:
+        default-requeue-rejected: false   # tras agotar reintentos, va a la DLQ (no se reencola infinito)
+        retry:
+          enabled: true
+          max-attempts: 3                 # 1 intento + 2 reintentos
+          initial-interval: 1s
+          multiplier: 2                   # espera 1s, luego 2s (backoff exponencial)
+
+# ---------- Actuator ----------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
