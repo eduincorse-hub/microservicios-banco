@@ -31,6 +31,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "Recurso duplicado", ex.getMessage());
     }
 
+    @ExceptionHandler(ParametroInvalidoException.class)
+    public ProblemDetail handleParametroInvalido(ParametroInvalidoException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Parámetro inválido", ex.getMessage());
+    }
+
         /** F3: retiro mayor al saldo disponible. */
     @ExceptionHandler(SaldoNoDisponibleException.class)
     public ProblemDetail handleSaldoNoDisponible(SaldoNoDisponibleException ex) {
